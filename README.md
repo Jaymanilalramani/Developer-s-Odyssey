@@ -8,7 +8,7 @@
 
 ## ✨ Live Demo
 
-🔗 **[View Live Project]([https://developer-s-odyssey.netlify.app])** *(Add your deployment link here)*
+🔗 **[View Live Project]([communityshowcasewebsite.netlify.app])** *(Add your deployment link here)*
 
 ---
 
