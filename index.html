@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>The Developer's Odyssey | Ultimate Edition 🏆</title>
+  
+  <!-- Fonts & Libraries -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <!-- Three.js for 3D Background -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+      }
+    }
+  </script>
+  
+  <!-- GSAP & Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-dark: #0a0c15;
+      --bg-card: rgba(30, 41, 59, 0.95);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.4);
+      --secondary: #f97316;
+      --error: #ef4444;
+      --success: #10b981;
+      --text: #eef5ff;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-dark: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --text: #0f172a;
+      --primary: #0284c7;
+    }
+
+    [data-theme="rgb"] {
+      --bg-dark: #000000;
+      --primary: #ff00ff;
+      --secondary: #00ffff;
+      --text: #ffffff;
+      animation: rgbShift 0.5s infinite;
+    }
+
+    @keyframes rgbShift {
+      0% { --primary: #ff0000; --secondary: #00ff00; }
+      50% { --primary: #00ff00; --secondary: #0000ff; }
+      100% { --primary: #ff00ff; --secondary: #ff0000; }
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      overflow-x: hidden;
+      transition: var(--transition);
+    }
+
+    /* Canvas 3D Background */
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      pointer-events: none;
+    }
+
+    /* Theme Switcher */
+    .theme-switcher {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      gap: 10px;
+      background: var(--bg-card);
+      padding: 10px;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--primary);
+    }
+    
+    .theme-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .theme-btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .theme-dark { background: #0a0c15; border: 2px solid #38bdf8; }
+    .theme-light { background: #f8fafc; border: 2px solid #0284c7; }
+    .theme-rgb { background: linear-gradient(45deg, #ff0000, #00ff00, #0000ff); }
+
+    /* Reset Progress Button */
+    .reset-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      background: var(--error);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+    
+    .reset-btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* Custom Cursor */
+    .cursor-follower, .cursor-dot {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 50%;
+    }
+    
+    .cursor-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--primary);
+    }
+    
+    .cursor-follower {
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--primary);
+      transition: all 0.2s ease;
+    }
+
+    section {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 4rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      margin-bottom: 3rem;
+      background: linear-gradient(135deg, #fff, var(--primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* Achievement Popup */
+    .achievement-popup {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 25px;
+      border-radius: 15px;
+      z-index: 10001;
+      animation: slideIn 0.5s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      font-weight: bold;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Tech Cards */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      max-width: 1000px;
+      width: 100%;
+    }
+    
+    .tech-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      padding: 2rem;
+      border-radius: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    
+    .tech-card.mastered {
+      border-color: var(--success);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    /* Code Editor */
+    .code-editor {
+      background: #1e1e1e;
+      border-radius: 1rem;
+      overflow: hidden;
+      width: 90%;
+      max-width: 800px;
+      margin: 2rem auto;
+    }
+    
+    .editor-header {
+      background: #2d2d2d;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    
+    .editor-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff5f56;
+    }
+    
+    .editor-dot:nth-child(2) { background: #ffbd2e; }
+    .editor-dot:nth-child(3) { background: #27c93f; }
+    
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border: none;
+      padding: 1rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      resize: vertical;
+    }
+    
+    .run-btn {
+      background: var(--success);
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .preview-output {
+      background: #2d2d2d;
+      padding: 1rem;
+      min-height: 100px;
+      border-top: 1px solid #444;
+    }
+
+    /* Stats Container */
+    .stats-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      max-width: 1000px;
+    }
+    
+    .stat-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      padding: 2rem;
+      border-radius: 1.5rem;
+      text-align: center;
+      min-width: 180px;
+    }
+    
+    .stat-number {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /* Debug Console */
+    .debug-console {
+      background: #1a1e2c;
+      border-radius: 1rem;
+      padding: 2rem;
+      width: 90%;
+      max-width: 700px;
+      font-family: 'Space Mono', monospace;
+    }
+    
+    /* Coffee Simulator */
+    .coffee-simulator {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border-radius: 2rem;
+      padding: 2rem;
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+    }
+    
+    .stress-meter {
+      width: 100%;
+      height: 30px;
+      background: #2d3748;
+      border-radius: 15px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+    
+    .stress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success), var(--error));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    /* Achievements Gallery */
+    .achievements-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      max-width: 800px;
+      margin-top: 2rem;
+    }
+    
+    .achievement-badge {
+      background: var(--bg-card);
+      padding: 1rem;
+      border-radius: 1rem;
+      text-align: center;
+      opacity: 0.5;
+      transition: all 0.3s;
+    }
+    
+    .achievement-badge.unlocked {
+      opacity: 1;
+      border: 1px solid var(--success);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      section { padding: 2rem 1rem; }
+      .tech-grid { grid-template-columns: 1fr; }
+      .stats-container { flex-direction: column; align-items: center; }
+      .theme-switcher { top: 10px; right: 10px; }
+      .reset-btn { bottom: 10px; right: 10px; padding: 8px 15px; font-size: 12px; }
+    }
+    
+    .reveal {
+      opacity: 0;
+      transform: translateY(50px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    footer {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<div class="cursor-dot"></div>
+<div class="cursor-follower"></div>
+
+<div class="theme-switcher">
+  <button class="theme-btn theme-dark" onclick="setTheme('dark')"></button>
+  <button class="theme-btn theme-light" onclick="setTheme('light')"></button>
+  <button class="theme-btn theme-rgb" onclick="setTheme('rgb')"></button>
+</div>
+
+<button class="reset-btn" onclick="resetProgress()">
+  <i class="fas fa-undo"></i> Reset Progress
+</button>
+
+<!-- HERO SECTION -->
+<section id="hero">
+  <div class="hero">
+    <div class="glitch-text" id="heroText">$>_ Hello World</div>
+    <div style="font-size: clamp(1.5rem, 4vw, 2.5rem); margin-top: 1rem;">👨‍💻 The Developer's Odyssey</div>
+    <p class="hero-sub">// Ultimate Edition • Code. Coffee. Conquer. 🏆</p>
+    <div style="margin-top: 3rem;">
+      <i class="fas fa-code fa-2x" style="color: var(--primary);"></i>
+      <i class="fas fa-mug-hot fa-2x" style="color: var(--secondary); margin-left: 1.5rem;"></i>
+      <i class="fas fa-bug fa-2x" style="color: var(--error); margin-left: 1.5rem;"></i>
+      <i class="fas fa-trophy fa-2x" style="color: #ffd700; margin-left: 1.5rem;"></i>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <i class="fas fa-chevron-down"></i>
+  </div>
+</section>
+
+<!-- STATS SECTION -->
+<section id="stats">
+  <h2 class="section-title reveal">📊 Developer Statistics</h2>
+  <div class="stats-container reveal">
+    <div class="stat-card">
+      <div class="stat-number" id="coffeeCount">0</div>
+      <div>Cups of Coffee</div>
+      <i class="fas fa-mug-hot"></i>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="bugCount">0</div>
+      <div>Bugs Fixed</div>
+      <i class="fas fa-bug"></i>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="commitCount">0</div>
+      <div>Git Commits</div>
+      <i class="fas fa-code-branch"></i>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="achievementCount">0</div>
+      <div>Achievements</div>
+      <i class="fas fa-trophy"></i>
+    </div>
+  </div>
+</section>
+
+<!-- LEARNING SECTION -->
+<section id="learning">
+  <h2 class="section-title reveal">📚 Master Technologies</h2>
+  <div class="tech-grid reveal">
+    <div class="tech-card" data-tech="HTML">
+      <i class="fab fa-html5" style="color: #e34c26; font-size: 3rem;"></i>
+      <h3>HTML5</h3>
+      <p>Structure your dreams</p>
+    </div>
+    <div class="tech-card" data-tech="CSS">
+      <i class="fab fa-css3-alt" style="color: #264de4; font-size: 3rem;"></i>
+      <h3>CSS3</h3>
+      <p>Make it beautiful</p>
+    </div>
+    <div class="tech-card" data-tech="JavaScript">
+      <i class="fab fa-js" style="color: #f7df1e; font-size: 3rem;"></i>
+      <h3>JavaScript</h3>
+      <p>Bring it to life</p>
+    </div>
+    <div class="tech-card" data-tech="React">
+      <i class="fab fa-react" style="color: #61dafb; font-size: 3rem;"></i>
+      <h3>React</h3>
+      <p>Build components</p>
+    </div>
+  </div>
+  <div id="learningMsg" style="margin-top: 2rem; text-align: center;"></div>
+</section>
+
+<!-- CODE EDITOR SECTION -->
+<section id="code-editor-section">
+  <h2 class="section-title reveal">💻 Live Code Playground</h2>
+  <div class="code-editor reveal">
+    <div class="editor-header">
+      <div class="editor-dot"></div>
+      <div class="editor-dot"></div>
+      <div class="editor-dot"></div>
+      <span style="color: #888; margin-left: 10px;">script.js</span>
+    </div>
+    <textarea id="codeInput" placeholder="Write JavaScript here...">// Write your code here!
+console.log("Hello Developer! 🚀");
+alert("Code is running!");</textarea>
+    <button class="run-btn" onclick="runCode()"><i class="fas fa-play"></i> Run Code</button>
+    <div class="preview-output" id="codeOutput">
+      <i class="fas fa-terminal"></i> Output will appear here...
+    </div>
+  </div>
+</section>
+
+<!-- DEBUGGING SECTION -->
+<section id="debugging">
+  <h2 class="section-title reveal">🐛 Debugging Hell</h2>
+  <div class="debug-console reveal">
+    <div class="console-line">
+      <span style="color: #10b981;">$></span> npm run build
+    </div>
+    <div class="bug-message" id="bugMessage">
+      <i class="fas fa-exclamation-triangle"></i> ERROR: Module not found
+    </div>
+    <button class="debug-btn" id="fixBugBtn">
+      <i class="fas fa-wrench"></i> Debug & Fix
+    </button>
+    <div id="debugCounter" style="margin-top: 1rem;"></div>
+  </div>
+</section>
+
+<!-- COFFEE SECTION -->
+<section id="coffee">
+  <h2 class="section-title reveal">☕ Coffee & Deadlines</h2>
+  <div class="coffee-simulator reveal">
+    <div class="coffee-cup" id="coffeeCup" style="font-size: 5rem; cursor: pointer;">
+      <i class="fas fa-mug-hot"></i>
+    </div>
+    <p>Click coffee to survive deadlines!</p>
+    <div class="stress-meter">
+      <div class="stress-fill" id="stressFill"></div>
+    </div>
+    <input type="range" id="stressSlider" min="0" max="100" value="30">
+    <p id="stressMessage"></p>
+  </div>
+</section>
+
+<!-- ACHIEVEMENTS SECTION -->
+<section id="achievements">
+  <h2 class="section-title reveal">🏆 Achievements Gallery</h2>
+  <div class="achievements-gallery reveal" id="achievementsGallery"></div>
+</section>
+
+<!-- DEPLOYMENT SECTION -->
+<section id="deploy">
+  <h2 class="section-title reveal">🚀 Deployment Success</h2>
+  <div class="deploy-terminal reveal">
+    <div class="terminal-line">> git add .</div>
+    <div class="terminal-line">> git commit -m "Final commit"</div>
+    <div class="terminal-line">> git push origin main</div>
+    <div class="terminal-line">> npm run deploy</div>
+    <div class="terminal-line success-text">✅ Deployed successfully! 🎉</div>
+  </div>
+  <button id="confettiBtn" style="margin-top: 2rem; background: linear-gradient(90deg, #10b981, #059669); border: none; padding: 12px 28px; border-radius: 50px; color: white; cursor: pointer;">
+    <i class="fas fa-party-horn"></i> Celebrate!
+  </button>
+</section>
+
+<footer>
+  <p>Made with <i class="fas fa-heart" style="color: #ef4444;"></i> • The Developer's Odyssey • Ultimate Edition</p>
+  <p>🏆 10+ Achievements • 3D Background • Live Code Editor • Theme Switcher</p>
+</footer>
+
+<script type="module">
+  import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
+  
+  // Three.js 3D Background
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  
+  // Create floating 3D objects
+  const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+  const material = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x1e40af, wireframe: true });
+  const knot = new THREE.Mesh(geometry, material);
+  scene.add(knot);
+  
+  // Add floating cubes
+  const cubes = [];
+  for (let i = 0; i < 50; i++) {
+    const size = Math.random() * 0.2 + 0.05;
+    const cubeGeo = new THREE.BoxGeometry(size, size, size);
+    const cubeMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+    const cube = new THREE.Mesh(cubeGeo, cubeMat);
+    cube.position.x = (Math.random() - 0.5) * 20;
+    cube.position.y = (Math.random() - 0.5) * 15;
+    cube.position.z = (Math.random() - 0.5) * 15 - 10;
+    scene.add(cube);
+    cubes.push(cube);
+  }
+  
+  // Add stars
+  const starGeometry = new THREE.BufferGeometry();
+  const starCount = 1000;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    starPositions[i*3] = (Math.random() - 0.5) * 200;
+    starPositions[i*3+1] = (Math.random() - 0.5) * 100;
+    starPositions[i*3+2] = (Math.random() - 0.5) * 50 - 20;
+  }
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  scene.add(stars);
+  
+  const light = new THREE.AmbientLight(0x404040);
+  scene.add(light);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(1, 2, 1);
+  scene.add(directionalLight);
+  
+  camera.position.z = 5;
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    knot.rotation.x += 0.01;
+    knot.rotation.y += 0.02;
+    stars.rotation.y += 0.001;
+    cubes.forEach(cube => {
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.02;
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+
+<script>
+  // ===== GLOBAL STATE =====
+  let gameState = {
+    masteredTechs: [],
+    bugsFixed: 0,
+    coffeeCount: 0,
+    stressLevel: 30,
+    achievements: []
+  };
+  
+  const achievementsList = [
+    { id: 'first_commit', name: 'First Commit', desc: 'Start your journey', icon: '📝' },
+    { id: 'html_master', name: 'HTML Master', desc: 'Master HTML', icon: '🔖' },
+    { id: 'css_master', name: 'CSS Master', desc: 'Master CSS', icon: '🎨' },
+    { id: 'js_master', name: 'JS Master', desc: 'Master JavaScript', icon: '⚡' },
+    { id: 'react_master', name: 'React Master', desc: 'Master React', icon: '⚛️' },
+    { id: 'bug_slayer', name: 'Bug Slayer', desc: 'Fix 5 bugs', icon: '🐛' },
+    { id: 'coffee_addict', name: 'Coffee Addict', desc: 'Drink 10 coffees', icon: '☕' },
+    { id: 'stress_king', name: 'Stress King', desc: 'Survive 100% stress', icon: '😰' },
+    { id: 'full_stack', name: 'Full Stack', desc: 'Master all tech', icon: '🏗️' },
+    { id: 'deploy_master', name: 'Deploy Master', desc: 'Celebrate deployment', icon: '🚀' }
+  ];
+  
+  // Load saved data
+  function loadProgress() {
+    const saved = localStorage.getItem('devOdyssey');
+    if (saved) {
+      gameState = JSON.parse(saved);
+      updateUI();
+    }
+    renderAchievements();
+  }
+  
+  function saveProgress() {
+    localStorage.setItem('devOdyssey', JSON.stringify(gameState));
+    updateStatsDisplay();
+  }
+  
+  function resetProgress() {
+    if (confirm('⚠️ Reset all progress? All achievements will be lost!')) {
+      gameState = {
+        masteredTechs: [],
+        bugsFixed: 0,
+        coffeeCount: 0,
+        stressLevel: 30,
+        achievements: []
+      };
+      saveProgress();
+      updateUI();
+      showAchievementPopup('🔄 Progress Reset', 'Starting fresh!');
+      renderAchievements();
+    }
+  }
+  
+  function unlockAchievement(achievementId) {
+    if (!gameState.achievements.includes(achievementId)) {
+      gameState.achievements.push(achievementId);
+      const achievement = achievementsList.find(a => a.id === achievementId);
+      showAchievementPopup(achievement.name, achievement.desc);
+      saveProgress();
+      renderAchievements();
+      updateStatsDisplay();
+      return true;
+    }
+    return false;
+  }
+  
+  function showAchievementPopup(title, desc) {
+    const popup = document.createElement('div');
+    popup.className = 'achievement-popup';
+    popup.innerHTML = `<i class="fas fa-trophy"></i> 🏆 ${title}<br><small>${desc}</small>`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+  }
+  
+  function renderAchievements() {
+    const gallery = document.getElementById('achievementsGallery');
+    gallery.innerHTML = achievementsList.map(ach => `
+      <div class="achievement-badge ${gameState.achievements.includes(ach.id) ? 'unlocked' : ''}">
+        <div style="font-size: 2rem;">${ach.icon}</div>
+        <div style="font-weight: bold;">${ach.name}</div>
+        <small>${ach.desc}</small>
+      </div>
+    `).join('');
+  }
+  
+  function updateStatsDisplay() {
+    document.getElementById('achievementCount').innerText = gameState.achievements.length;
+    document.getElementById('coffeeCount').innerText = gameState.coffeeCount;
+    document.getElementById('bugCount').innerText = gameState.bugsFixed;
+  }
+  
+  function updateUI() {
+    updateStatsDisplay();
+    document.getElementById('stressSlider').value = gameState.stressLevel;
+    updateStress();
+    
+    // Update tech cards mastery
+    document.querySelectorAll('.tech-card').forEach(card => {
+      const tech = card.getAttribute('data-tech');
+      if (gameState.masteredTechs.includes(tech)) {
+        card.classList.add('mastered');
+      }
+    });
+    
+    if (gameState.masteredTechs.length === 4 && !gameState.achievements.includes('full_stack')) {
+      unlockAchievement('full_stack');
+    }
+  }
+  
+  // Theme switcher
+  window.setTheme = (theme) => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  };
+  
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) setTheme(savedTheme);
+  
+  // Cursor effects
+  const cursorDot = document.querySelector('.cursor-dot');
+  const cursorFollower = document.querySelector('.cursor-follower');
+  
+  document.addEventListener('mousemove', (e) => {
+    gsap.to(cursorDot, { duration: 0.1, x: e.clientX - 3, y: e.clientY - 3 });
+    gsap.to(cursorFollower, { duration: 0.3, x: e.clientX - 15, y: e.clientY - 15 });
+  });
+  
+  // Sound effect
+  function playSound(freq = 880, duration = 0.2) {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      gain.gain.value = 0.15;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+      setTimeout(() => osc.stop(), duration * 1000);
+    } catch(e) {}
+  }
+  
+  // Hero typing effect
+  const heroText = document.getElementById('heroText');
+  const fullText = "$>_ Hello World";
+  heroText.innerHTML = '';
+  let idx = 0;
+  function typeHero() {
+    if (idx < fullText.length) {
+      heroText.innerHTML += fullText.charAt(idx);
+      idx++;
+      setTimeout(typeHero, 60);
+    } else {
+      unlockAchievement('first_commit');
+    }
+  }
+  typeHero();
+  
+  // Tech cards interaction
+  document.querySelectorAll('.tech-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const tech = card.getAttribute('data-tech');
+      if (!gameState.masteredTechs.includes(tech)) {
+        gameState.masteredTechs.push(tech);
+        card.classList.add('mastered');
+        playSound(660, 0.15);
+        document.getElementById('learningMsg').innerHTML = `✨ Mastered ${tech}! ✨ (${gameState.masteredTechs.length}/4)`;
+        
+        if (tech === 'HTML') unlockAchievement('html_master');
+        if (tech === 'CSS') unlockAchievement('css_master');
+        if (tech === 'JavaScript') unlockAchievement('js_master');
+        if (tech === 'React') unlockAchievement('react_master');
+        if (gameState.masteredTechs.length === 4) unlockAchievement('full_stack');
+        
+        saveProgress();
+      }
+    });
+  });
+  
+  // Debug button
+  let bugMessages = ['ERROR: Module not found', 'TypeError: undefined is not a function', 'SyntaxError: Unexpected token', 'npm ERR! code ELIFECYCLE', 'Uncaught ReferenceError'];
+  let bugIndex = 0;
+  
+  document.getElementById('fixBugBtn').addEventListener('click', () => {
+    gameState.bugsFixed++;
+    playSound(440, 0.2);
+    document.getElementById('bugMessage').innerHTML = `<i class="fas fa-check-circle"></i> Fixed: ${bugMessages[bugIndex % bugMessages.length]}`;
+    document.getElementById('debugCounter').innerHTML = `Total bugs fixed: ${gameState.bugsFixed}`;
+    bugIndex++;
+    
+    if (gameState.bugsFixed >= 5) unlockAchievement('bug_slayer');
+    
+    setTimeout(() => {
+      document.getElementById('bugMessage').innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${bugMessages[bugIndex % bugMessages.length]}`;
+    }, 2000);
+    
+    saveProgress();
+    updateStatsDisplay();
+  });
+  
+  // Coffee & Stress
+  function updateStress() {
+    const stress = gameState.stressLevel;
+    const fill = document.getElementById('stressFill');
+    fill.style.width = stress + '%';
+    const msg = document.getElementById('stressMessage');
+    if (stress < 30) msg.innerHTML = '😌 Zen mode - Keep coding!';
+    else if (stress < 60) msg.innerHTML = '😰 Need coffee soon!';
+    else msg.innerHTML = '💀 CRITICAL! DRINK COFFEE NOW!';
+    
+    if (stress >= 100 && !gameState.achievements.includes('stress_king')) {
+      unlockAchievement('stress_king');
+    }
+  }
+  
+  document.getElementById('stressSlider').addEventListener('input', (e) => {
+    gameState.stressLevel = parseInt(e.target.value);
+    updateStress();
+    saveProgress();
+  });
+  
+  document.getElementById('coffeeCup').addEventListener('click', () => {
+    gameState.coffeeCount++;
+    gameState.stressLevel = Math.max(0, gameState.stressLevel - 15);
+    document.getElementById('stressSlider').value = gameState.stressLevel;
+    updateStress();
+    playSound(660, 0.15);
+    
+    if (gameState.coffeeCount >= 10) unlockAchievement('coffee_addict');
+    saveProgress();
+    updateStatsDisplay();
+  });
+  
+  // Code editor
+  window.runCode = function() {
+    const code = document.getElementById('codeInput').value;
+    const output = document.getElementById('codeOutput');
+    output.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+    
+    setTimeout(() => {
+      try {
+        const originalLog = console.log;
+        let logOutput = '';
+        console.log = (...args) => { logOutput += args.join(' ') + '<br>'; };
+        eval(code);
+        console.log = originalLog;
+        output.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981"></i> Output:<br>${logOutput || 'Code executed successfully!'}`;
+      } catch(e) {
+        output.innerHTML = `<i class="fas fa-exclamation-triangle" style="color:#ef4444"></i> Error: ${e.message}`;
+      }
+    }, 100);
+  };
+  
+  // Confetti
+  function launchConfetti() {
+    unlockAchievement('deploy_master');
+    for (let i = 0; i < 150; i++) {
+      const confetti = document.createElement('div');
+      confetti.innerHTML = ['🎉', '✨', '🚀', '💻', '🎈', '⭐', '🏆'][Math.floor(Math.random() * 7)];
+      confetti.style.position = 'fixed';
+      confetti.style.left = Math.random() * window.innerWidth + 'px';
+      confetti.style.top = '-20px';
+      confetti.style.fontSize = (Math.random() * 24 + 16) + 'px';
+      confetti.style.pointerEvents = 'none';
+      confetti.style.zIndex = '10000';
+      document.body.appendChild(confetti);
+      gsap.to(confetti, {
+        y: window.innerHeight + 100,
+        x: (Math.random() - 0.5) * 200,
+        rotation: Math.random() * 720,
+        duration: Math.random() * 2 + 1,
+        onComplete: () => confetti.remove()
+      });
+    }
+    playSound(1200, 0.3);
+  }
+  
+  document.getElementById('confettiBtn').addEventListener('click', launchConfetti);
+  
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('active');
+    });
+  }, { threshold: 0.2 });
+  reveals.forEach(r => observer.observe(r));
+  
+  // GSAP Scroll animations
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.to('.scroll-indicator', {
+    y: 10,
+    repeat: -1,
+    yoyo: true,
+    duration: 0.8
+  });
+  
+  // Terminal lines animation
+  ScrollTrigger.create({
+    trigger: '#deploy',
+    start: 'top 80%',
+    onEnter: () => {
+      document.querySelectorAll('.terminal-line').forEach((line, i) => {
+        gsap.fromTo(line, { opacity: 0, y: 20 }, { opacity: 1, y: 0, delay: i * 0.2, duration: 0.5 });
+      });
+    }
+  });
+  
+  // Number counters animation
+  function animateNumbers() {
+    const targets = {
+      coffee: gameState.coffeeCount,
+      bugs: gameState.bugsFixed,
+      commits: 1542,
+      achievements: gameState.achievements.length
+    };
+    gsap.to({}, {
+      duration: 2,
+      onUpdate: function() {
+        document.getElementById('coffeeCount').innerText = Math.floor(targets.coffee * this.progress());
+        document.getElementById('bugCount').innerText = Math.floor(targets.bugs * this.progress());
+        document.getElementById('commitCount').innerText = Math.floor(targets.commits * this.progress());
+        document.getElementById('achievementCount').innerText = Math.floor(targets.achievements * this.progress());
+      },
+      onComplete: () => {
+        document.getElementById('coffeeCount').innerText = targets.coffee;
+        document.getElementById('bugCount').innerText = targets.bugs;
+        document.getElementById('commitCount').innerText = targets.commits;
+        document.getElementById('achievementCount').innerText = targets.achievements;
+      }
+    });
+  }
+  
+  ScrollTrigger.create({
+    trigger: '#stats',
+    start: 'top 80%',
+    onEnter: animateNumbers,
+    once: true
+  });
+  
+  // Initialize
+  loadProgress();
+  updateStress();
+</script>
+</body>
+</html>
